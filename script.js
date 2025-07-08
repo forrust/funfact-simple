@@ -3,6 +3,14 @@ async function loadFunFact() {
   const displayElement = document.getElementById("funFactDisplay");
   const button = document.getElementById("getFunFact");
   
+  // Increment click count and check for easter egg
+  clickCount++;
+  if (clickCount === 9 && !easterEggTriggered) {
+    easterEggTriggered = true;
+    createConfetti();
+    showSpecialMessage();
+  }
+  
   // Disable button during loading
   button.disabled = true;
   
@@ -49,6 +57,49 @@ async function loadFunFact() {
     displayElement.style.opacity = '1';
     button.disabled = false;
   }
+}
+
+// Track click count for easter egg
+let clickCount = 0;
+let easterEggTriggered = false;
+
+// Create confetti effect
+function createConfetti() {
+  const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff1493'];
+  const confettiCount = 150;
+  
+  for (let i = 0; i < confettiCount; i++) {
+    setTimeout(() => {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      confetti.style.left = Math.random() * 100 + '%';
+      confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.animationDelay = Math.random() * 0.5 + 's';
+      confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+      document.body.appendChild(confetti);
+      
+      // Remove confetti after animation
+      setTimeout(() => confetti.remove(), 5000);
+    }, i * 10);
+  }
+}
+
+// Show special message
+function showSpecialMessage() {
+  const popup = document.createElement('div');
+  popup.className = 'special-popup';
+  popup.innerHTML = `
+    <div class="popup-content">
+      <h2>🎉 Congratulations! 🎉</h2>
+      <p>You won a fun fact award</p>      
+      <p>You must really love fun facts!</p>
+      <button onclick="this.parentElement.parentElement.remove()">Awesome!</button>
+    </div>
+  `;
+  document.body.appendChild(popup);
+  
+  // Auto-remove after 10 seconds
+  setTimeout(() => popup.remove(), 10000);
 }
 
 // Load a fun fact when the page loads
