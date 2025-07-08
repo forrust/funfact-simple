@@ -1,0 +1,97 @@
+# Azure DevOps Pipeline for Funfact-Simple App
+# This pipeline builds and deploys the Node.js application
+
+trigger:
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - funfact-simple/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: 'app-variables'  # Create this variable group in Azure DevOps
+  - name: nodeVersion
+    value: '20.x'
+  - name: webAppName
+    value: 'mau2-workshop-webapp-weu-p'  # Update after infrastructure deployment
+  - name: resourceGroup
+    value: 'mau2-rg-workshop-weu-p'
+
+stages:
+- stage: Build
+  displayName: 'Build Application'
+  jobs:
+  - job: BuildJob
+    displayName: 'Build Node.js App'
+    steps:
+    - task: NodeTool@0
+      displayName: 'Install Node.js'
+      inputs:
+        versionSpec: '$(nodeVersion)'
+
+    - script: |
+        cd funfact-simple
+        npm install --production
+      displayName: 'Install dependencies'
+
+    - task: ArchiveFiles@2
+      displayName: 'Archive application'
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)/funfact-simple'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+        replaceExistingArchive: true
+
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish app package'
+      inputs:
+        targetPath: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+        artifact: 'app-package'
+
+- stage: Deploy
+  displayName: 'Deploy to Azure'
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: DeployWebApp
+    displayName: 'Deploy to Web App'
+    environment: 'production'  # Create environment with approvals
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: 'app-package'
+
+          - task: AzureWebApp@1
+            displayName: 'Deploy to Azure Web App'
+            inputs:
+              azureSubscription: 'KPN-Azure-Connection'
+              appType: 'webAppLinux'
+              appName: '$(webAppName)'
+              package: '$(Pipeline.Workspace)/app-package/$(Build.BuildId).zip'
+              runtimeStack: 'NODE|20-lts'
+              startUpCommand: 'node app.js'
+
+          - task: AzureCLI@2
+            displayName: 'Verify deployment'
+            inputs:
+              azureSubscription: 'KPN-Azure-Connection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # Get the web app URL
+                webapp_url=$(az webapp show \
+                  --name $(webAppName) \
+                  --resource-group $(resourceGroup) \
+                  --query defaultHostName -o tsv)
+                
+                echo "Web App URL: https://$webapp_url"
+                
+                # Test the API endpoint
+                curl -s "https://$webapp_url/api/funfact" | jq '.'

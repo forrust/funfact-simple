@@ -1,302 +1,222 @@
-# Azure Web Apps Workshop
+# Funfact Simple App
 
-## Introduction
-Het doel van deze workshop is om een web app, function app en static web app te deployen naar Azure.
-De web app zal een fun fact ophalen van de function app en deze tonen.
-De static web app zal de function app aanroepen en de fun fact tonen.
+A simple Node.js web application that displays random fun facts. This app is designed to be deployed on Azure Web Apps.
 
-We hebben voor deze workshop een kant en klare WSL image gemaakt die je kan gebruiken om de workshop te volgen.
+## Features
 
-Deze kan je hier downloaden: https://wslimage.blob.core.windows.net/image/wsl2-dev-image.7z
+- Random Fun Facts: Displays interesting technology and science facts
+- REST API: Exposes `/api/funfact` endpoint for programmatic access
+- Responsive Design: Works on desktop and mobile devices
+- Azure-Ready: Optimized for Azure Web App deployment
+- SSH Access: Enabled for debugging and monitoring
 
-Pak de image uit en importeer deze in WSL met het volgende commando:
+## Architecture
 
-```powershell
-cd %USERPROFILE%\Downloads\wsl2-dev-image
-wsl --import workshop-azure-app . .\wsl2-dev-image.tar
+```
+Web Browser ----> Express.js Application
+                       |
+                       +-- Static Files (HTML, CSS, JS)
+                       |
+                       +-- API Endpoint (/api/funfact)
 ```
 
-Open Windows Terminal en open een nieuwe shell in de workshop-azure-app WSL image.
+## Project Structure
 
-Clone de GitHub repository:
-
-````bash
-git clone https://github.com/tooling-automation/workshop-azure-apps.git
-cd ~/workshop-azure-apps
-````
-
-Open VS Code in de root van de workshop-azure-apps folder:
-
-```bash
-code .
+```
+funfact-simple/
+├── app.js              # Express server and API endpoints
+├── index.html          # Frontend HTML
+├── script.js           # Frontend JavaScript
+├── style.css           # Styling
+├── funfacts.js         # Fun facts data
+├── package.json        # Node.js dependencies
+├── package-lock.json   # Dependency lock file
+├── azure-pipelines-app.yml  # Azure DevOps pipeline
+└── README.md           # This file
 ```
 
-Bekijk en lees de bestanden in de workshop-azure-apps folder.
+## Getting Started
 
-Probeer te begrijpen wat er gebeurt in de verschillende bestanden en folders.
+### Prerequisites
+- Node.js 20.x or later
+- npm (comes with Node.js)
 
-### Function App
+### Local Development
 
-Eerst maken we een function app aan waarin we een HTTP trigger aanmaken die een fun fact teruggeeft.
+1. Clone the repository
+   ```bash
+   git clone <repository-url>
+   cd funfact-simple
+   ```
 
-Alle onderstaande commando's kan je terugvinden in: https://learn.microsoft.com/en-us/azure/azure-functions/create-first-function-cli-node?tabs=linux%2Cazure-cli%2Cbrowser&pivots=nodejs-model-v4
+2. Install dependencies
+   ```bash
+   npm install
+   ```
 
-Open een nieuwe terminal en ga naar de functionapp folder.
+3. Run the application
+   ```bash
+   npm start
+   ```
 
-Initialiseer een function app met de volgende commando's:
-```bash
-cd ~/workshop-azure-apps/functionapp
-func init --javascript 
+4. Access the application
+   - Web UI: http://localhost:3001
+   - API: http://localhost:3001/api/funfact
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| PORT | Port number for the server | 3001 |
+
+## API Documentation
+
+### Get Random Fun Fact
+```
+GET /api/funfact
 ```
 
-Maak een HTTP trigger aan met de naam funfact met het volgende commando:
-
-```bash
-func new --name funfact --template "HTTP trigger" --authlevel "anonymous"
-```
-
-Zorg ervoor dat de HTTP jouw favoriete funfact teruggeeft. Bijvoorbeeld:
-
-```javascript
-// functionapp/src/functions/funfact.js
-const { app } = require('@azure/functions');
-
-app.http('funfact', {
-  methods: ['GET', 'POST'],
-  authLevel: 'anonymous',
-  handler: async (request, context) => {
-    context.log(`Http function processed request for url "${request.url}"`);
-
-    return {
-      jsonBody: {
-        funfact: "Did you know that the first computer virus was created in 1983?",
-      }
-    }
-  }
-});
-```
-
-Draai de function app met het volgende commando:
-```bash
-cd ~/workshop-azure-apps/functionapp
-func start
-```
-
-Test de function app door in je browser naar `http://localhost:7071/api/funfact` te gaan.
-
-### Static Web App
-
-Nu we de function app hebben gedeployed, gaan we een static web app aanmaken die de function app aanroept.
-
-Onderstaande commands kan je terugvinden in: https://azure.github.io/static-web-apps-cli/docs/use/install
-
-Open een nieuwe terminal en ga naar de staticwebapp folder.
-
-Zorg dat je in de root van de staticwebapp folder zit en voer de volgende commando's uit:
-
-```bash
-cd ~/workshop-azure-apps/staticwebapp
-```
-
-Voor het lokaal draaien van de static web app geef je de URL van de function app mee.
-De SWA cli zal dan automatisch een proxy aanmaken zodat de static web app de function app kan aanroepen.
-
-```bash
-swa start src --api-devserver-url http://localhost:7071
-```
-
-Ga in je browser naar `http://localhost:4280` en je zou de static web app moeten zien.
-
-Klik op de knop "Get Fun Fact from Function App" en je zou de fun fact moeten zien.
-
-De volgende stap is om een zelfde API op te zetten in de vorm van een Azure Web App.
-
-### Web App
-
-Open een nieuwe terminal en ga naar de webapp folder.
-
-Run de web app lokaal:
-
-```bash
-cd ~/workshop-azure-apps/webapp
-npm install
-node app.js
-```
-
-Ga in je browser naar `http://localhost:3000/api/funfact` en je zou een nieuwe fun fact moeten zien.
-
-Ga naar je function app en open het bestand local.settings.json. Voeg de volgende key-value pair toe:
-
-```bash
-cd ~/workshop-azure-apps/functionapp
-```
-
+Response:
 ```json
 {
-  "IsEncrypted": false,
-  "Values": {
-    "FUNCTIONS_WORKER_RUNTIME": "node",
-    "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
-    "AzureWebJobsStorage": "",
-    "FUNFACT_WEBAPP_API_URL": "http://localhost:3000"
-  }
+  "funfact": "The first computer bug was an actual bug - a moth trapped in Harvard's Mark II computer in 1947."
 }
 ```
 
-Maak nu een nieuwe http trigger aan in de function app die de web app aanroept:
-
+Example using curl:
 ```bash
-cd ~/workshop-azure-apps/functionapp
-func new --name funfactwa --template "HTTP trigger" --authlevel "anonymous"
+curl http://localhost:3001/api/funfact
 ```
 
-De http trigger zou er als volgt uit kunnen zien:
+## Deployment
 
+### Azure Web App Deployment
+
+This app is configured to run on Azure Linux Web Apps with Node.js 20 LTS.
+
+#### Quick Deploy with Azure CLI
+```bash
+# Create a deployment package
+zip -r deploy.zip . -x "node_modules/*" ".git/*"
+
+# Deploy to Azure Web App
+az webapp deployment source config-zip \
+  --resource-group <resource-group-name> \
+  --name <web-app-name> \
+  --src deploy.zip
+```
+
+#### CI/CD with Azure DevOps
+
+The project includes `azure-pipelines-app.yml` for automated deployment:
+
+1. Pipeline Features:
+   - Automatic trigger on main branch
+   - Node.js 20.x build environment
+   - Automated testing (when tests are added)
+   - Zero-downtime deployment
+   - Post-deployment verification
+
+2. Required Variables:
+   - webAppName: Your Azure Web App name
+   - resourceGroup: Azure resource group name
+
+### Deployment Checklist
+
+- Node.js 20 LTS runtime configured
+- Port configuration via environment variable
+- Static file serving configured
+- API endpoints tested
+- Azure DevOps pipeline ready
+
+## Development
+
+### Adding New Fun Facts
+
+Edit `funfacts.js` and add new facts to the array:
 ```javascript
-const { app } = require('@azure/functions')
-
-app.http('funfactwa', {
-  methods: ['GET'],
-  authLevel: 'anonymous',
-  handler: async (request, context) => {
-    context.log(`Http function processed request for url "${request.url}"`)
-
-    const response = await fetch(`${process.env.FUNFACT_WEBAPP_API_URL}/api/funfact`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-
-    if (!response.ok) {
-      return {
-        status: response.status,
-        body: {
-          message: 'Failed to fetch fun fact from web app'
-        }
-      }
-    }
-
-    const responseBody = await response.json()
-
-    return {
-      jsonBody: {
-        funfact: responseBody.funfact
-      }
-    }
-  }
-})
+module.exports = [
+  "Your new fun fact here!",
+  // ... more facts
+];
 ```
 
-Herstart de function app:
+### Modifying the UI
 
+- HTML: Edit `index.html`
+- Styles: Modify `style.css`
+- Behavior: Update `script.js`
+
+### Project Scripts
+
+```json
+{
+  "start": "node app.js"
+}
+```
+
+## Security Considerations
+
+- No sensitive data in code
+- Environment variables for configuration
+- HTTPS enforced in production (via Azure)
+- No database credentials (uses in-memory data)
+
+## Debugging
+
+### Local Debugging
 ```bash
-func start
+# Run with Node.js inspector
+node --inspect app.js
 ```
 
-Ga nu in je browser naar je static web app en klik op de knop "Get Fun Fact from Web App". Je zou nu de fun fact van de web app moeten zien.
-
-Nu gaan we het geheel deployen naar Azure.
-
-Definieer eerst een aantal environment variabelen zodat je deze kan hergebruiken.
-
-Open een nieuwe terminal en voer de volgende commando's uit, kies bij het inloggen op Azure voor de kpn-business-market-workload-training subscription:
-
+### Production Debugging (SSH)
+After deployment to Azure:
 ```bash
-azctx login
+# SSH into the web app
+az webapp ssh --name <app-name> --resource-group <rg-name>
 
-azctx
+# Navigate to app directory
+cd /home/site/wwwroot
 
-export RUISNAAM=<jouw-ruisnaam>
-export RESOURCE_GROUP_NAME=rg-workshop-$RUISNAAM
-export STORAGE_NAME=stworkshop$RUISNAAM
-export FUNCTION_APP_NAME=fn-workshop-$RUISNAAM
-export STATIC_WEB_APP_NAME=swa-workshop-$RUISNAAM
-export WEB_APP_NAME=wa-workshop-$RUISNAAM
+# View logs
+cd /home/LogFiles
 ```
 
-Maak een nieuwe Resource Group aan:
+## Monitoring
 
+When deployed to Azure:
+- Application Logs: Azure Portal > App Service > Log Stream
+- Metrics: Azure Portal > App Service > Metrics
+- Health Check: Configure in Azure Portal
+
+## Troubleshooting
+
+### Common Issues
+
+**Port Already in Use**
 ```bash
-az group create --name $RESOURCE_GROUP_NAME --location westeurope
+# Find process using port 3001
+lsof -i :3001
+# Kill the process or use different port
+PORT=3002 npm start
 ```
 
-Maak een general-purpose storage account aan:
-
+**Module Not Found**
 ```bash
-az storage account create --name $STORAGE_NAME --location westeurope --resource-group $RESOURCE_GROUP_NAME --sku Standard_LRS --allow-blob-public-access false
+# Clear npm cache and reinstall
+rm -rf node_modules package-lock.json
+npm install
 ```
 
-Creeer een Static Web App in Azure:
+**Azure Deployment Fails**
+- Check Node.js version matches (20.x)
+- Verify all files are included in deployment
+- Check Azure Portal logs for errors
 
-```bash
-az staticwebapp create \
-    --name $STATIC_WEB_APP_NAME \
-    --resource-group $RESOURCE_GROUP_NAME \
-    --location westeurope
-```
+## Support
 
-Upgrade to Standard Plan:
-
-```bash
-az staticwebapp update --name $STATIC_WEB_APP_NAME --resource-group $RESOURCE_GROUP_NAME --sku Standard
-```
-
-Haal de url op van de static web app:
-
-```bash
-az staticwebapp show --name $STATIC_WEB_APP_NAME --resource-group $RESOURCE_GROUP_NAME --query "defaultHostname" -o tsv
-```
-
-Ga in je browser naar de url die je hebt opgehaald en verifieer dat de static web app werkt.
-
-Deploy de static web app naar Azure:
-
-```bash
-cd ~/workshop-azure-apps/staticwebapp
-swa deploy ./src --env production --app-name $STATIC_WEB_APP_NAME
-```
-
-Maak de functie app in Azure aan:
-
-```bash
-az functionapp create --resource-group $RESOURCE_GROUP_NAME --consumption-plan-location westeurope --runtime node --runtime-version 20 --functions-version 4 --name $FUNCTION_APP_NAME --storage-account $STORAGE_NAME --os-type Linux
-```
-
-Deploy de function app naar Azure:
-
-```bash
-cd ~/workshop-azure-apps/functionapp
-func azure functionapp publish $FUNCTION_APP_NAME
-```
-
-Link de static web app aan de function app: https://learn.microsoft.com/en-us/azure/static-web-apps/functions-bring-your-own#link-an-existing-azure-functions-app
-
-Azure portal > Static Web App > APIs -> Link de Function app aan de Production environment
-
-Verifieer dat de static web app de function app aanroept door op de knop "Get Fun Fact from Function App" te klikken.
-
-Deploy de web app naar Azure met de volgende commando's:
-
-```bash
-cd ~/workshop-azure-apps/webapp 
-az webapp up --sku F1 --name $WEB_APP_NAME --location westeurope --resource-group $RESOURCE_GROUP_NAME
-```
-
-Voeg de environment variable `FUNFACT_WEBAPP_API_URL` toe aan de function app, zodat de function app de web app kan aanroepen:
-
-```bash
-az functionapp config appsettings set --settings FUNFACT_WEBAPP_API_URL="https://$WEB_APP_NAME.azurewebsites.net" --name $FUNCTION_APP_NAME --resource-group $RESOURCE_GROUP_NAME 
-```
-
-Herstart de function app:
-
-```bash
-az functionapp restart --name $FUNCTION_APP_NAME --resource-group $RESOURCE_GROUP_NAME
-```
-
-Verifieer dat de static web app de web app aanroept door op de knop "Get Fun Fact from Web App" te klikken.
-
-Klaar! Je hebt nu een function app, static web app en web app gedeployed naar Azure.
-
-
+For issues or questions:
+- Check Azure Portal diagnostics
+- Review deployment logs
+- Contact: dsp-azureservices@kpn.com
