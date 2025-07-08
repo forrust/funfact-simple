@@ -5,7 +5,7 @@ async function loadFunFact() {
   
   // Increment click count and check for easter egg
   clickCount++;
-  if (clickCount === 9 && !easterEggTriggered) {
+  if (clickCount === 4 && !easterEggTriggered) {
     easterEggTriggered = true;
     createConfetti();
     showSpecialMessage();
