@@ -67,3 +67,5 @@ local.settings.json
 
 # Yarn Integrity file
 .yarn-integrity
+
+*.zip
