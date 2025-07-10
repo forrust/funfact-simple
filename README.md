@@ -106,21 +106,6 @@ az webapp deployment source config-zip \
   --src deploy.zip
 ```
 
-#### CI/CD with Azure DevOps
-
-The project includes `azure-pipelines-app.yml` for automated deployment:
-
-1. Pipeline Features:
-   - Automatic trigger on main branch
-   - Node.js 20.x build environment
-   - Automated testing (when tests are added)
-   - Zero-downtime deployment
-   - Post-deployment verification
-
-2. Required Variables:
-   - webAppName: Your Azure Web App name
-   - resourceGroup: Azure resource group name
-
 ### Deployment Checklist
 
 - Node.js 20 LTS runtime configured
